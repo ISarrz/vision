@@ -46,6 +46,8 @@ def extract_letters(img):
             letter_square[y_0:y_0 + h, x_0:x_0 + w] = croped
             letter_square = cv2.resize(letter_square, (28 * 10, 28 * 10), interpolation=cv2.INTER_AREA)
             letter_square = ~letter_square
+            letter_square = cv2.flip(letter_square, 1)
+            letter_square = cv2.rotate(letter_square, cv2.ROTATE_90_COUNTERCLOCKWISE)
             letters.append(letter_square)
             # cv2.rectangle(output, (x, y), (x + w, y + h), (70, 0, 0), 1)
 

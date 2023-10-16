@@ -15,7 +15,10 @@ X_test = np.reshape(X_test, (X_test.shape[0], 28, 28, 1))
 n = 4
 im = X_train[n]
 im = cv2.resize(im, (28 * 10, 28 * 10), interpolation=cv2.INTER_LINEAR)
-im = cv2.rotate(im, cv2)
+im = cv2.rotate(im, cv2.ROTATE_90_CLOCKWISE)
+im = cv2.flip(im, 1)
+im = cv2.flip(im, 1)
+im = cv2.rotate(im, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
 cv2.imshow("", im)
 cv2.waitKey(0)
