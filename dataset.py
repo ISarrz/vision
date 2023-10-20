@@ -8,7 +8,7 @@ from math import sqrt
 
 def extract_letters(img):
     letters = []
-    im = cv2.imread(img)
+    im = img
 
     ##  filterd_image = cv2.medianBlur(my_photo, 3)
     filterd_image = cv2.GaussianBlur(im, (5, 5), 0)
@@ -16,16 +16,18 @@ def extract_letters(img):
     img_grey = cv2.cvtColor(filterd_image, cv2.COLOR_BGR2GRAY)
     cv2.imshow("", img_grey)
     cv2.waitKey(0)
-    thresh = 100
+    thresh = 180
 
     # get threshold image
     ret, thresh_img = cv2.threshold(img_grey, thresh, 255, cv2.THRESH_BINARY)
     cv2.imshow("", thresh_img)
+    #output = img.copy()
     cv2.waitKey(0)
     # output = thresh_img.copy()
     # find contours
     contours, hierarchy = cv2.findContours(thresh_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     sr_diag = 0
+    if len(contours) <= 1: return []
 
     for ind, contour in enumerate(contours[1:]):
         if hierarchy[0][ind][3] == 0:
@@ -37,7 +39,8 @@ def extract_letters(img):
     for ind, contour in enumerate(contours):
         (x, y, w, h) = cv2.boundingRect(contour)
         diag = sqrt(w ** 2 + h ** 2)
-        if hierarchy[0][ind][3] == 0 and diag >= sr_diag:
+        #if hierarchy[0][ind][3] == 0 and diag >= sr_diag:
+        if hierarchy[0][ind][3] == 0:
             croped = thresh_img[y:y + h, x:x + w]
             size_max = int(max(w, h) * 1.4)
             letter_square = 255 * np.ones(shape=[size_max, size_max], dtype=np.uint8)
@@ -52,8 +55,9 @@ def extract_letters(img):
             letter_square = cv2.rotate(letter_square, cv2.ROTATE_90_COUNTERCLOCKWISE)
             letter_square = 1 - letter_square / 255
             cv2.imshow("", letter_square)
-            letters.append(letter_square)
-            # cv2.rectangle(output, (x, y), (x + w, y + h), (70, 0, 0), 1)
+            cv2.waitKey(0)
+            letters.append([(x,y,w,h),letter_square])
+            #cv2.rectangle(output, (x, y), (x + w, y + h), (70, 0, 0), 1)
 
     return letters
 
