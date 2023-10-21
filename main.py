@@ -1,13 +1,20 @@
 import json
 import keras
+import json
+import keras
 
+import cv2
+import numpy as np
+from flask import Flask, render_template, Response
+import cv2
+import time
 import cv2
 from math import sqrt
 
 import numpy as np
 import time
 
-
+app = Flask(__name__)
 class Object:
     def __init__(self, x, y, w, h, time_update, symbol=""):
         self.x = x
@@ -157,12 +164,29 @@ class Application:
                     cv2.rectangle(frame, (x, y), (x + w, y + h), self.GREEN, 2)
                     frame = cv2.putText(frame, 'X', (x, y), cv2.FONT_HERSHEY_SIMPLEX , 2, self.GREEN, 3, cv2.LINE_AA)
 
-            cv2.imshow('', frame)
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+            #cv2.imshow('', frame)
 
         self.video.release()
         cv2.destroyAllWindows()
 
 
+a = Application()
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+@app.route('/video')
+def video():
+    return Response(a.generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
 if __name__ == "__main__":
-    a = Application()
-    a.generate_frames(0.2)
+    app.run(debug=True)
