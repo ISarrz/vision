@@ -1,192 +1,176 @@
-import json
-import keras
-import json
-import keras
-
+from flet import *
 import cv2
-import numpy as np
-from flask import Flask, render_template, Response
-import cv2
-import time
-import cv2
-from math import sqrt
-
-import numpy as np
-import time
-
-app = Flask(__name__)
-class Object:
-    def __init__(self, x, y, w, h, time_update, symbol=""):
-        self.x = x
-        self.y = y
-        self.w = w
-        self.h = h
-        self.center_x = x + w // 2
-        self.center_y = y + h // 2
-        self.diagonal = sqrt(w ** 2 + h ** 2)
-        self.symbol = symbol
-        self.time_update = time_update
-        self.time_recognize = time_update
-
-    def check(self, x, y, w, h):
-        center_x = x + w // 2
-        center_y = y + h // 2
-        delta_x = abs(center_x - self.center_x)
-        delta_y = abs(center_y - self.center_y)
-        delta_diagonal = sqrt(delta_x ** 2 + delta_y ** 2)
-        if abs(delta_diagonal <= self.diagonal / 2):
-            return True
-        return False
-
-    def update(self, x, y, w, h, time_update):
-        self.x = x
-        self.y = y
-        self.w = w
-        self.h = h
-        self.center_x = x + w // 2
-        self.center_y = y + h // 2
-        self.diagonal = sqrt(w ** 2 + h ** 2)
-        #self.symbol = symbol
-        self.time_update = time_update
+import asyncio
 
 
-class Application:
-    def __init__(self, video_input='3.mp4'):
-        self.video = cv2.VideoCapture(video_input)
-        self.objects = []
-        with open("encodes.json", 'r') as file:
-            self.encodes = json.load(file)
-        self.model = keras.models.load_model('emnist_letters.h5')
-        self.GREEN = (0, 255, 0)
-        self.WHITE = (255, 255, 255)
+class Countdown(Image):
+    def __init__(self):
+        super().__init__()
+        print('init')
 
-    def convert_image(self, im):
-        image = im.copy()
+    async def did_mount_async(self):
+        print('did')
+        self.running = True
+        asyncio.create_task(self.update_timer())
 
-        grey = ~cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])  # contrast
-        grey = cv2.filter2D(grey, -1, kernel)
+    async def will_unmount_async(self):
+        print('will')
+        self.running = False
 
-        grey = cv2.medianBlur(grey, 5)
-        grey = cv2.GaussianBlur(grey, (5, 5), 0)
-        grey = cv2.GaussianBlur(grey, (13, 13), 0)
-
-        # calculate thresh borders
-        v = np.median(image)
-        sigma = 0.33
-        lower = int(max(0, (1.0 - sigma) * v))
-        upper = int(min(255, (1.0 + sigma) * v))
-
-        ret, thresh_img = cv2.threshold(grey, lower, upper, cv2.THRESH_BINARY)
-
-        return thresh_img
-
-    def find_contours(self, image):
-        contours, hierarchy = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-        if not contours:
-            print('no')
-            return []
-
-        diagonals = []
-        for ind, contour in enumerate(contours):
-            (x, y, w, h) = cv2.boundingRect(contour)
-            diagonal = sqrt(w ** 2 + h ** 2)
-            diagonals.append(diagonal)
-        diagonals.sort()
-        sr_diagonal = sum(diagonals[1:-2]) / len(diagonals[1:-2])
-        max_diagonal = diagonals[-1]
-        min_diagonal = diagonals[0]
-        ex_contours = []
-        for ind, contour in enumerate(contours):
-            (x, y, w, h) = cv2.boundingRect(contour)
-            diagonal = sqrt(w ** 2 + h ** 2)
-
-            if diagonal >= sr_diagonal * 0.8 and diagonal <= max_diagonal * 0.5 and hierarchy[0][ind][3] == -1:
-                ex_contours.append(contour)
-        return ex_contours
-
-    def recognize(self, image, contour):
-        (x, y, w, h) = cv2.boundingRect(contour)
-        cropped = image[y:y + h, x:x + w]
-        size_max = int(max(w, h) * 1.4)
-
-        # moving to center
-        letter_square = 255 * np.zeros(shape=[size_max, size_max], dtype=np.uint8)
-        x_0 = (size_max - w) // 2
-        y_0 = (size_max - h) // 2
-        letter_square[y_0:y_0 + h, x_0:x_0 + w] = cropped
-
-        # reshaping for recognition
-        letter_square = cv2.resize(letter_square, (28, 28), interpolation=cv2.INTER_AREA)
-        letter_square = cv2.flip(letter_square, 1)
-        letter_square = cv2.rotate(letter_square, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        letter_square = np.expand_dims(letter_square, axis=0)
-        letter_square = letter_square / 255
-
-        # return "x"
-        # recognize
-        predict = self.model.predict([letter_square])
-        result = np.argmax(predict, axis=1)
-        text = chr(self.encodes[str(result[0])])
-        return text
-
-    def generate_frames(self, refresh_time):
-        start_time = time.time()
+    async def update_timer(self):
+        camera = cv2.VideoCapture('3.mp4')
         while True:
-            success, frame = self.video.read()
-            if cv2.waitKey(1) & 0xFF == ord('q') or not success:
+            res, frame = camera.read()
+            if not res:
                 break
+            cv2.imwrite('work.jpeg', frame)
+            self.src = 'work.jpeg'
+            await self.update_async()
+            await asyncio.sleep(1)
 
-            thresh_img = self.convert_image(frame)
-            contours = self.find_contours(thresh_img)
-            refreshed_objects = []
-            for object in self.objects:
-                if time.time() - object.time_update < 5:
-                    refreshed_objects.append(object)
-            self.objects = refreshed_objects
-            for contour in contours:
-                find = False
-                (x, y, w, h) = cv2.boundingRect(contour)
-                for object in self.objects:
-                    if object.check(x, y, w, h):
-                        find = True
-                        if time.time() - object.time_recognize > 2:
-                            object.symbol = self.recognize(thresh_img, contour)
-                            object.time_recognize = time.time()
-                        object.update(x, y, w, h, time.time())
-                        cv2.rectangle(frame, (x, y), (x + w, y + h), self.GREEN, 2)
-                        frame = cv2.putText(frame, object.symbol, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 2, self.GREEN, 3, cv2.LINE_AA)
-                        break
-
-                if not find:
-                    object = Object(x, y, w, h, time.time(), self.recognize(thresh_img, contour))
-                    self.objects.append(object)
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), self.GREEN, 2)
-                    frame = cv2.putText(frame, 'X', (x, y), cv2.FONT_HERSHEY_SIMPLEX , 2, self.GREEN, 3, cv2.LINE_AA)
-
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-            #cv2.imshow('', frame)
-
-        self.video.release()
-        cv2.destroyAllWindows()
+            print('update')
 
 
-a = Application()
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+    def build(self):
+        print('build')
+        self.image = Image(
+            src=f"",
+            width=100,
+            height=100,
+            fit=ImageFit.CONTAIN,
+            border_radius=border_radius.all(10)
+        )
+        return self.countdown
+
+async def main(page: Page):
+    def check_item_clicked(e):
+        e.control.checked = not e.control.checked
+        page.update()
+
+    def minimize():
+        page.window_minimized = True
+
+    BG = "#23272a"
+    G = "#2c2f33"
+    LG = "#99aab5"
+    page.bgcolor = BG
+
+    page.window_height = 800
+    page.window_width = 1500
+    page.padding = 0
+    page.window_title_bar_hidden = True
+    page.window_center()
+
+    def minimize(e):
+        page.window_minimized = True
+        page.update()
+
+    def full_screen(e):
+        e.control.selected = not e.control.selected
+        if page.window_full_screen:
+
+            page.window_full_screen = False
+        else:
+
+            page.window_full_screen = True
+        page.update()
+
+    def settings(e):
+        pass
+
+    frame = cv2.imread('test.jpeg')
+    cv2.imwrite('work.jpeg', frame)
+
+    img = Image(
+        src='work.jpeg',
+        width=1000,
+        height=800,
+        fit=ImageFit.CONTAIN,
+
+        
+    )
+    menu_bar = Container(
+        animate_opacity=100,
+
+        opacity=0,
+        disabled=True,
+        visible=True,
+        left=40,
+        content=Row([
+            IconButton(icon=icons.SETTINGS, selected_icon=icons.SETTINGS, on_click=settings,
+
+                       style=ButtonStyle(
+                           color={
+                               MaterialState.HOVERED: colors.WHITE,
+                               MaterialState.DEFAULT: LG,
+                           },
+                           overlay_color=colors.TRANSPARENT,
+                       )
+                       )
+        ])
+    )
+
+    def menu(e):
+        e.control.selected = not e.control.selected
+        menu_bar.disabled = not menu_bar.disabled
+
+        menu_bar.opacity = 0 if menu_bar.opacity else 1
 
 
-@app.route('/video')
-def video():
-    return Response(a.generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+        top.update()
+
+    top = Stack([
+        Row(
+            [
+                WindowDragArea(
+                    Container(Text(),
+                              bgcolor=G, padding=10), expand=True),
+
+            ]
+        ),
+        IconButton(icon=icons.MENU_ROUNDED, selected_icon=icons.MENU_OPEN_ROUNDED, on_click=menu,
+                   left=5,
+                   style=ButtonStyle(
+                       color={
+                           MaterialState.HOVERED: colors.WHITE,
+                           MaterialState.DEFAULT: LG,
+                       },
+                       overlay_color=colors.TRANSPARENT,
+                   )
+                   ),
+        menu_bar,
+        IconButton(icon=icons.FULLSCREEN_ROUNDED, selected_icon=icons.FULLSCREEN_EXIT_ROUNDED, on_click=full_screen,
+                   right=30,
+                   style=ButtonStyle(
+                       color={
+                           MaterialState.HOVERED: colors.WHITE,
+                           MaterialState.DEFAULT: LG,
+                       },
+                       overlay_color=colors.TRANSPARENT,
+                   )
+                   ),
+        IconButton(icons.MINIMIZE_SHARP, on_click=minimize, right=60, top=-8,
+                   style=ButtonStyle(
+                       color={
+                           MaterialState.HOVERED: colors.WHITE,
+                           MaterialState.DEFAULT: LG,
+                       },
+                       overlay_color=colors.TRANSPARENT,
+                   )
+                   ),
+        IconButton(icons.CLOSE, on_click=lambda _: page.window_close(), right=0,
+                   style=ButtonStyle(
+                       color={
+                           MaterialState.HOVERED: colors.RED,
+                           MaterialState.DEFAULT: LG,
+                       },
+                       overlay_color=colors.TRANSPARENT,
+                   )
+                   )
+
+    ])
+    page.add(top, img)
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+app(target=main, assets_dir="assets")
