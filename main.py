@@ -1,20 +1,11 @@
 import json
 import keras
-import json
-import keras
-
-import cv2
-import numpy as np
-from flask import Flask, render_template, Response
-import cv2
-import time
 import cv2
 from math import sqrt
-
 import numpy as np
 import time
 
-app = Flask(__name__)
+
 class Object:
     def __init__(self, x, y, w, h, time_update, symbol=""):
         self.x = x
@@ -46,7 +37,7 @@ class Object:
         self.center_x = x + w // 2
         self.center_y = y + h // 2
         self.diagonal = sqrt(w ** 2 + h ** 2)
-        #self.symbol = symbol
+        # self.symbol = symbol
         self.time_update = time_update
 
 
@@ -130,7 +121,7 @@ class Application:
         text = chr(self.encodes[str(result[0])])
         return text
 
-    def generate_frames(self, refresh_time):
+    def generate_frames(self):
         start_time = time.time()
         while True:
             success, frame = self.video.read()
@@ -155,22 +146,18 @@ class Application:
                             object.time_recognize = time.time()
                         object.update(x, y, w, h, time.time())
                         cv2.rectangle(frame, (x, y), (x + w, y + h), self.GREEN, 2)
-                        frame = cv2.putText(frame, object.symbol, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 2, self.GREEN, 3, cv2.LINE_AA)
+                        frame = cv2.putText(frame, object.symbol, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 2, self.GREEN, 3,
+                                            cv2.LINE_AA)
                         break
 
                 if not find:
                     object = Object(x, y, w, h, time.time(), self.recognize(thresh_img, contour))
                     self.objects.append(object)
                     cv2.rectangle(frame, (x, y), (x + w, y + h), self.GREEN, 2)
-                    frame = cv2.putText(frame, 'X', (x, y), cv2.FONT_HERSHEY_SIMPLEX , 2, self.GREEN, 3, cv2.LINE_AA)
+                    frame = cv2.putText(frame, 'X', (x, y), cv2.FONT_HERSHEY_SIMPLEX, 2, self.GREEN, 3, cv2.LINE_AA)
 
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-            #cv2.imshow('', frame)
+            cv2.imshow('', frame)
+            cv2.waitKey(1)
 
         self.video.release()
         cv2.destroyAllWindows()
@@ -178,15 +165,6 @@ class Application:
 
 a = Application()
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
-@app.route('/video')
-def video():
-    return Response(a.generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-
 if __name__ == "__main__":
-    app.run(debug=True)
+    a = Application()
+    a.generate_frames()
