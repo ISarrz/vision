@@ -1,64 +1,12 @@
-from flet_multi_page import subPage
-from flet import *
-import cv2
-import json
-from settings_page import second_target
-
-DG = "#1C1F22"
-BG = "#23272a"
-G = "#2c2f33"
-LG = "#99aab5"
+from style import *
 
 
-def resize_image(image, size):
-    height, width = image.shape[:2]
-    new_width, new_height = size
-    otn = width / height
-    if otn >= 1:
-        if new_width < new_height:
-            image = cv2.resize(image, (int(new_height * otn), new_height))
-        else:
-            image = cv2.resize(image, (new_width, int(new_width / otn)))
-    else:
-        if new_width > new_height:
-            image = cv2.resize(image, (int(new_height * otn), new_height))
-        else:
-            image = cv2.resize(image, (new_width, int(new_width / otn)))
-    return image
 
+if __name__ == '__main__':
+    from main import Application
+    from settings_page import second_target
 
-with open('data/settings.json', 'r') as file:
-    settings_data = json.load(file)
-buttons_style = ButtonStyle(
-    color={
-        MaterialState.HOVERED: colors.WHITE,
-        MaterialState.DEFAULT: LG,
-    },
-    overlay_color=colors.TRANSPARENT,
-)
-buttons_style_red = ButtonStyle(
-    color={
-        MaterialState.HOVERED: colors.RED,
-        MaterialState.DEFAULT: LG,
-    },
-    overlay_color=colors.TRANSPARENT,
-)
-buttons_style_light_red = ButtonStyle(
-    color={
-        MaterialState.HOVERED: colors.RED,
-        MaterialState.DEFAULT: DG,
-    },
-    overlay_color=colors.TRANSPARENT,
-)
-buttons_style_light_green = ButtonStyle(
-    color={
-        MaterialState.HOVERED: colors.GREEN,
-        MaterialState.DEFAULT: DG,
-    },
-    overlay_color=colors.TRANSPARENT,
-)
-
-
+    from functions import *
 def main(page: Page):
     page.bgcolor = G
     page.window_height = 800
@@ -81,36 +29,34 @@ def main(page: Page):
         p.start()  # ! This will run and start the second page.
 
     def play(e):
-        width = int(settings_data['video_window_size'][0])
-        height = int(settings_data['video_window_size'][1])
+        e.control.selected = not e.control.selected
+        page.update()
+        a = Application()
+        a.generate_frames(e)
 
-        if not e.control.selected:
-            e.control.selected = True
-            e.control.update()
-            camera = cv2.VideoCapture('3.mp4')
-            while True and e.control.selected:
-                res, frame = camera.read()
-                if not res:
-                    break
-                frame = resize_image(frame, (width, height))
-                cv2.imshow('Video', frame)
-                cv2.moveWindow("Video", 500, 500)
-                # cv2.resizeWindow()
-                cv2.waitKey(2)
 
-            cv2.destroyAllWindows()
-            camera.release()
-            e.control.selected = False
-            e.control.update()
-        else:
-            e.control.selected = False
-            e.control.update()
 
+    def pause(e):
+        if play_button.selected:
+            if e.control.selected:
+                play_button.content.controls[0].value = play_button.content.controls[0].value.replace('p', '')
+                pause_button.selected = not pause_button.selected
+            else:
+
+                play_button.content.controls[0].value += 'p'
+                pause_button.selected = not pause_button.selected
+            e.control.update()
     def screen(e):
-        pass
+        if play_button.selected:
+            play_button.content.controls[0].value += 's'
 
     def convert(e):
-        pass
+        if play_button.selected:
+            play_button.content.controls[0].value += 'c'
+        while 'c' in play_button.content.controls[0].value:
+            pass
+        text_widget.value = play_button.content.controls[1].value
+        text_widget.update()
 
     text_widget = TextField(expand=True, value='Test', color=colors.WHITE, multiline=True,
                             border_color=colors.TRANSPARENT)
@@ -119,26 +65,25 @@ def main(page: Page):
         text_widget.value = ''
         text_widget.update()
 
-    def close_dlg(e):
-        dlg_modal.open = False
+    def close_dlg_ok(e):
+        dlg_modal_ok.open = False
         page.update()
 
-    def open_dlg():
-        page.dialog = dlg_modal
-        dlg_modal.open = True
+    def open_dlg_ok():
+        page.dialog = dlg_modal_ok
+        dlg_modal_ok.open = True
         page.update()
 
-    def save(e):
-        open_dlg()
+    def close_dlg_error(e):
+        dlg_modal_error.open = False
+        page.update()
 
-    def save_file(e):
-        s = dlg_modal.actions[0].content.controls[1].value
-        text = text_widget.value
-        with open(s, 'w') as file:
-            file.write(text)
-        close_dlg(e)
+    def open_dlg_error():
+        page.dialog = dlg_modal_error
+        dlg_modal_error.open = True
+        page.update()
 
-    dlg_modal = AlertDialog(
+    dlg_modal_ok = AlertDialog(
         modal=True,
 
         actions=[
@@ -147,14 +92,9 @@ def main(page: Page):
                 alignment=alignment.center,
                 content=
                 Column([
-                    Text('Saving', scale=2),
-                    TextField(label='Enter filename'),
-                    Row([
-                        TextButton("Save", on_click=save_file, style=buttons_style_light_green, scale=1.5),
-                        TextButton("Cancel", on_click=close_dlg, style=buttons_style_light_red, scale=1.5)
-                    ],
-                        alignment=MainAxisAlignment.CENTER
-                    )
+                    Text('Saved', scale=2),
+
+                    TextButton('OK', on_click=close_dlg_ok)
                 ],
                     horizontal_alignment=CrossAxisAlignment.CENTER)
             )
@@ -162,6 +102,58 @@ def main(page: Page):
         ],
         actions_alignment=MainAxisAlignment.END,
         on_dismiss=lambda e: print("Modal dialog dismissed!"),
+    )
+    dlg_modal_error = AlertDialog(
+        modal=True,
+
+        actions=[
+            Container(
+                padding=5,
+                alignment=alignment.center,
+                content=
+                Column([
+                    Text('Error', scale=2),
+
+                    TextButton('OK', on_click=close_dlg_error)
+                ],
+                    horizontal_alignment=CrossAxisAlignment.CENTER)
+            )
+
+        ],
+        actions_alignment=MainAxisAlignment.END,
+        on_dismiss=lambda e: print("Modal dialog dismissed!"),
+    )
+
+    def pick_files_result(e: FilePickerResultEvent):
+        s = e.path
+        if s:
+            text = text_widget.value
+            try:
+                with open(s, 'w') as file:
+                    file.write(text)
+                open_dlg_ok()
+            except Exception:
+                open_dlg_error()
+
+    pick_files_dialog = FilePicker(on_result=pick_files_result)
+    page.overlay.append(pick_files_dialog)
+
+    play_button = IconButton(
+        top=-5,
+        icon=icons.PLAY_ARROW_ROUNDED,
+        selected_icon=icons.STOP_ROUNDED,
+        on_click=play,
+        style=buttons_style,
+        content=Row([Text(''), Text('')])
+    )
+    pause_button = IconButton(
+        top=-5,
+        left=30,
+        icon=icons.PAUSE_ROUNDED,
+        selected_icon=icons.PLAY_ARROW_ROUNDED,
+        on_click=pause,
+        style=buttons_style,
+
     )
 
     menu_bar = Container(
@@ -245,17 +237,13 @@ def main(page: Page):
                     content=
                     Stack([
                         Row([Text()], expand=True),
-                        IconButton(
-                            top=-5,
-                            icon=icons.PLAY_ARROW_ROUNDED,
-                            selected_icon=icons.STOP_ROUNDED,
-                            on_click=play,
-                            style=buttons_style
-                        ),
+                        play_button,
+                        pause_button,
+
 
                         IconButton(
                             top=-5,
-                            left=30,
+                            left=60,
                             icon=icons.CAMERA,
                             on_click=screen,
                             style=buttons_style
@@ -263,7 +251,7 @@ def main(page: Page):
 
                         IconButton(
                             top=-5,
-                            left=60,
+                            left=90,
                             icon=icons.REMOVE_RED_EYE_OUTLINED,
                             on_click=convert,
                             style=buttons_style
@@ -297,7 +285,7 @@ def main(page: Page):
                         ),
                         IconButton(
                             icon=icons.SAVE,
-                            on_click=save,
+                            on_click=lambda _: pick_files_dialog.save_file(),
                             left=30,
                             top=-5,
                             style=buttons_style

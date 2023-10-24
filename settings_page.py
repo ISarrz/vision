@@ -1,45 +1,6 @@
-import json
-
-from flet_multi_page import subPage
-from flet import *
+from style import *
 import cv2
-import random
 
-DG = "#1C1F22"
-BG = "#23272a"
-G = "#2c2f33"
-LG = "#99aab5"
-with open('data/settings.json', 'r') as file:
-    settings = json.load(file)
-
-buttons_style = ButtonStyle(
-    color={
-        MaterialState.HOVERED: colors.WHITE,
-        MaterialState.DEFAULT: LG,
-    },
-    overlay_color=colors.TRANSPARENT,
-)
-buttons_style_red = ButtonStyle(
-    color={
-        MaterialState.HOVERED: colors.RED,
-        MaterialState.DEFAULT: LG,
-    },
-    overlay_color=colors.TRANSPARENT,
-)
-buttons_style_light_red = ButtonStyle(
-    color={
-        MaterialState.HOVERED: colors.RED,
-        MaterialState.DEFAULT: DG,
-    },
-    overlay_color=colors.TRANSPARENT,
-)
-buttons_style_light_green = ButtonStyle(
-    color={
-        MaterialState.HOVERED: colors.GREEN,
-        MaterialState.DEFAULT: DG,
-    },
-    overlay_color=colors.TRANSPARENT,
-)
 
 
 def second_target(page: Page):
@@ -51,9 +12,7 @@ def second_target(page: Page):
     page.window_center()
 
     def pick_files_result(e: FilePickerResultEvent):
-        selected_files.value = (
-            ", ".join(map(lambda f: f.name, e.files)) if e.files else ""
-        )
+        selected_files.value = e.files[0].path
         if selected_files.value:
             video_settings_widget.content.controls[1].controls[2].value = selected_files.value
             video_settings_widget.content.controls[1].controls[2].update()
@@ -80,19 +39,19 @@ def second_target(page: Page):
         if e.control.selected:
             return
         e.control.selected = True
-        settings['video_file_name'] = video_settings_widget.content.controls[1].controls[2].value
+        settings_data['video_file_name'] = video_settings_widget.content.controls[1].controls[2].value
         size = (video_settings_widget.content.controls[0].controls[1].controls[1].value,
                 video_settings_widget.content.controls[0].controls[2].controls[1].value)
-        settings['video_window_size'] = size
+        settings_data['video_window_size'] = size
         input_type_bool = video_settings_widget.content.controls[1].controls[3].value
         if input_type_bool:
-            settings['video_input_type'] = 'file'
+            settings_data['video_input_type'] = 'file'
         else:
-            settings['video_input_type'] = 'stream'
-        settings['video_input_name'] = video_settings_widget.content.controls[2].controls[2].text
-        settings['video_type'] = video_settings_widget.content.controls[3].controls[1].value
+            settings_data['video_input_type'] = 'stream'
+        settings_data['video_input_name'] = video_settings_widget.content.controls[2].controls[2].text
+        settings_data['video_type'] = video_settings_widget.content.controls[3].controls[1].value
         with open('data/settings.json', 'w') as file:
-            json.dump(settings, file)
+            json.dump(settings_data, file)
         e.control.update()
 
     def input_type(e):
@@ -172,13 +131,13 @@ def second_target(page: Page):
                 Text('Video window size', size=18, color=colors.WHITE),
                 Column([
                     Text('width', size=18, color=colors.WHITE),
-                    TextField(value=settings['video_window_size'][0], height=30, width=80, multiline=False,
+                    TextField(value=settings_data['video_window_size'][0], height=30, width=80, multiline=False,
                               text_align="CENTER", text_size=15, on_change=change_save_button, color=colors.WHITE)
                 ],
                     spacing=0),
                 Column([
                     Text('height', size=18, color=colors.WHITE),
-                    TextField(value=settings['video_window_size'][1], height=30, width=80, multiline=False,
+                    TextField(value=settings_data['video_window_size'][1], height=30, width=80, multiline=False,
                               text_align="CENTER", text_size=15, on_change=change_save_button, color=colors.WHITE)
                 ],
                     spacing=0),
@@ -193,9 +152,9 @@ def second_target(page: Page):
                     ), style=ButtonStyle(color=colors.WHITE)
 
                 ),
-                TextField(value=settings['video_file_name'], height=30, width=300, multiline=False, text_align="CENTER",
+                TextField(value=settings_data['video_file_name'], height=90, width=300, multiline=True, text_align="CENTER",
                           text_size=15, disabled=True, color=colors.WHITE),
-                Checkbox(label='1', value=True if settings["video_input_type"] == 'file' else False,
+                Checkbox(label='1', value=True if settings_data["video_input_type"] == 'file' else False,
                          on_change=input_type, fill_color={
                         MaterialState.HOVERED: LG,
                         MaterialState.FOCUSED: colors.RED,
@@ -207,10 +166,10 @@ def second_target(page: Page):
                 Text('Video input', size=18, color=colors.WHITE),
 
                 IconButton(icons.ARROW_LEFT, on_click=input_name_update, style=ButtonStyle(color=colors.WHITE)),
-                TextButton(settings['video_input_name'], disabled=True, style=ButtonStyle(color=colors.WHITE)),
+                TextButton(settings_data['video_input_name'], disabled=True, style=ButtonStyle(color=colors.WHITE)),
                 IconButton(icons.ARROW_RIGHT, on_click=input_name_update, style=ButtonStyle(color=colors.WHITE)),
 
-                Checkbox(label='2', value=True if settings["video_input_type"] == 'stream' else False,
+                Checkbox(label='2', value=True if settings_data["video_input_type"] == 'stream' else False,
                          on_change=input_type,
 
                          fill_color={
@@ -225,7 +184,7 @@ def second_target(page: Page):
 
                 Dropdown(
                     # width=100,
-                    value=settings['video_type'],
+                    value=settings_data['video_type'],
                     scale=0.8,
                     filled=True,
 
@@ -276,7 +235,7 @@ def second_target(page: Page):
                 Column([
                     TextButton(content=Text('Video', no_wrap=True), on_click=video_settings),
 
-                    TextButton(content=Text('Help', no_wrap=True), on_click=help_page),
+                    # TextButton(content=Text('Help', no_wrap=True), on_click=help_page),
 
                 ],
                     spacing=0,
@@ -294,4 +253,4 @@ def second_target(page: Page):
 
 
 if __name__ == "__main__":  # ? This is so important, there will be errors without it.
-    app(target=main)
+    app(target=second_target)
