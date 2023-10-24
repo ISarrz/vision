@@ -45,11 +45,11 @@ class Object:
 class Application:
     def __init__(self):
         with open('data/settings.json', 'r') as file:
-            settings_data = json.load(file)
-        if settings_data['video_input_type'] == 'file':
-            self.video = cv2.VideoCapture(settings_data['video_file_name'])
+            self.settings_data = json.load(file)
+        if self.settings_data['video_input_type'] == 'file':
+            self.video = cv2.VideoCapture(self.settings_data['video_file_name'])
         else:
-            self.video = cv2.VideoCapture(int(settings_data['video_input_name']))
+            self.video = cv2.VideoCapture(int(self.settings_data['video_input_name']))
         self.objects = []
         with open("data/encodes.json", 'r') as file:
             self.encodes = json.load(file)
@@ -58,6 +58,8 @@ class Application:
         self.WHITE = (255, 255, 255)
 
     def convert_image(self, im):
+        with open('data/settings.json', 'r') as file:
+            self.settings_data = json.load(file)
         image = im.copy()
 
         gray = ~cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -67,9 +69,15 @@ class Application:
         gray = cv2.medianBlur(gray, 5)
         gray = cv2.GaussianBlur(gray, (5, 5), 0)
         # gray = cv2.GaussianBlur(gray, (13, 13), 0)
-
-        ret, thresh_img = cv2.threshold(gray, 128, 192, cv2.THRESH_OTSU)
-        thresh_img = cv2.GaussianBlur(thresh_img, (5, 5), 0)
+        if self.settings_data['thresh_type'] == 'auto':
+            ret, thresh_img = cv2.threshold(gray, 128, 192, cv2.THRESH_OTSU)
+            print('a')
+        else:
+            thresh = int(self.settings_data['thresh_value'])
+            print('r')
+        # ret, thresh_img = cv2.threshold(gray, 128, 192, cv2.THRESH_OTSU)
+            ret, thresh_img = cv2.threshold(gray, thresh, 255, cv2.THRESH_BINARY)
+        # thresh_img = cv2.GaussianBlur(thresh_img, (5, 5), 0)
 
         return thresh_img
 
@@ -158,7 +166,7 @@ class Application:
 
     def generate_frames(self, e):
         with open('data/settings.json', 'r') as file:
-            settings_data = json.load(file)
+            self.settings_data = json.load(file)
         if e.control.selected:
             while True and e.control.selected:
                 if 's' in e.control.content.controls[0].value:
@@ -211,15 +219,15 @@ class Application:
                         output = cv2.putText(output, 'X', (x, y), cv2.FONT_HERSHEY_SIMPLEX, 2, self.GREEN, 3,
                                              cv2.LINE_AA)
 
-                if settings_data['video_type'] == 'normal':
-                    width = int(settings_data['video_window_size'][0])
-                    height = int(settings_data['video_window_size'][1])
+                if self.settings_data['video_type'] == 'normal':
+                    width = int(self.settings_data['video_window_size'][0])
+                    height = int(self.settings_data['video_window_size'][1])
                     output = resize_image(output, (width, height))
                     cv2.imshow('', output)
                 else:
                     output = thresh_img
-                    width = int(settings_data['video_window_size'][0])
-                    height = int(settings_data['video_window_size'][1])
+                    width = int(self.settings_data['video_window_size'][0])
+                    height = int(self.settings_data['video_window_size'][1])
                     output = resize_image(output, (width, height))
                     cv2.imshow('', output)
 

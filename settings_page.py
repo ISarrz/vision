@@ -49,10 +49,18 @@ def second_target(page: Page):
         else:
             settings_data['video_input_type'] = 'stream'
         settings_data['video_input_name'] = video_settings_widget.content.controls[2].controls[2].text
+        settings_data['thresh_value'] = video_settings_widget.content.controls[4].controls[2].text
         settings_data['video_type'] = video_settings_widget.content.controls[3].controls[1].value
+        if video_settings_widget.content.controls[4].controls[5].value:
+            settings_data['thresh_type'] = 'auto'
+        else:
+            settings_data['thresh_type'] = 'change'
         with open('data/settings.json', 'w') as file:
             json.dump(settings_data, file)
         e.control.update()
+
+
+
 
     def input_type(e):
         if e.control.label == '1':
@@ -79,6 +87,20 @@ def second_target(page: Page):
             n = video_settings_widget.content.controls[2].controls[2].text
             n = str(int(n) + 1)
             video_settings_widget.content.controls[2].controls[2].text = n
+        page.update()
+        change_save_button(e)
+
+    def thresh_value_update(e):
+        if e.control.icon == icons.ARROW_LEFT:
+            n = video_settings_widget.content.controls[4].controls[2].text
+            if n == '0':
+                return
+            n = str(int(n) - 1)
+            video_settings_widget.content.controls[4].controls[2].text = n
+        else:
+            n = video_settings_widget.content.controls[4].controls[2].text
+            n = str(int(n) + 1)
+            video_settings_widget.content.controls[4].controls[2].text = n
         page.update()
         change_save_button(e)
 
@@ -195,7 +217,23 @@ def second_target(page: Page):
                 on_change=change_save_button
                 )
 
-            ])
+            ]),
+            Row([
+                Text('Thresh value', size=18, color=colors.WHITE),
+
+                IconButton(icons.ARROW_LEFT, on_click=thresh_value_update, style=ButtonStyle(color=colors.WHITE)),
+                TextButton(settings_data['thresh_value'], disabled=True, style=ButtonStyle(color=colors.WHITE)),
+                IconButton(icons.ARROW_RIGHT, on_click=thresh_value_update, style=ButtonStyle(color=colors.WHITE)),
+                Text('Auto', size=18, color=colors.WHITE),
+                Checkbox(value=True if settings_data["thresh_type"] == 'auto' else False,
+                         on_change=change_save_button,
+                         fill_color={
+                             MaterialState.HOVERED: LG,
+                             MaterialState.FOCUSED: colors.RED,
+                             MaterialState.DEFAULT: colors.BLACK,
+                         })
+
+            ]),
 
         ], expand=True)
     )

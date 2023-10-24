@@ -57,6 +57,9 @@ def main(page: Page):
             pass
         text_widget.value = play_button.content.controls[1].value
         text_widget.update()
+    def close(e):
+        page.window_close()
+        exit()
 
     text_widget = TextField(expand=True, value='Test', color=colors.WHITE, multiline=True,
                             border_color=colors.TRANSPARENT)
@@ -212,7 +215,7 @@ def main(page: Page):
 
             IconButton(
                 icon=icons.CLOSE,
-                on_click=lambda _: page.window_close(),
+                on_click=close  ,
                 right=0,
                 style=buttons_style_red
             )

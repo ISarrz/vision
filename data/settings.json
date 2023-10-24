@@ -1,1 +1,1 @@
-{"video_window_size": ["400", "300"], "video_file_name": "C:\\Users\\Germa\\OneDrive\\\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b\\save\\3.mp4", "video_input_name": "0", "video_input_type": "file", "video_type": "binary"}
+{"video_window_size": ["400", "300"], "video_file_name": "C:\\Users\\Germa\\PycharmProjects\\vision\\1.mp4", "video_input_name": "0", "video_input_type": "file", "video_type": "normal", "thresh_value": "114", "thresh_type": "change"}
