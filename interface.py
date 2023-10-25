@@ -1,7 +1,6 @@
 from style import *
 
 
-
 if __name__ == '__main__':
     from main import Application
     from settings_page import second_target

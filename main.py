@@ -44,6 +44,7 @@ class Object:
 
 class Application:
     def __init__(self):
+        self.predict_count = 0
         with open('data/settings.json', 'r') as file:
             self.settings_data = json.load(file)
         if self.settings_data['video_input_type'] == 'file':
@@ -51,8 +52,9 @@ class Application:
         else:
             self.video = cv2.VideoCapture(int(self.settings_data['video_input_name']))
         self.objects = []
-        with open("data/encodes.json", 'r') as file:
-            self.encodes = json.load(file)
+        self.emnist_labels = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78,
+                         79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106,
+                         107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122]
         self.model = keras.models.load_model('data/emnist_letters.h5')
         self.GREEN = (0, 255, 0)
         self.WHITE = (255, 255, 255)
@@ -68,7 +70,7 @@ class Application:
 
         gray = cv2.medianBlur(gray, 5)
         gray = cv2.GaussianBlur(gray, (5, 5), 0)
-        # gray = cv2.GaussianBlur(gray, (13, 13), 0)
+        gray = cv2.GaussianBlur(gray, (13, 13), 0)
         if self.settings_data['thresh_type'] == 'auto':
             ret, thresh_img = cv2.threshold(gray, 128, 192, cv2.THRESH_OTSU)
             print('a')
@@ -142,14 +144,15 @@ class Application:
     def recognize(self, image, contour):
         (x, y, w, h) = cv2.boundingRect(contour)
         cropped = image[y:y + h, x:x + w]
-        size_max = int(max(w, h) * 1.4)
+        size_max = int(max(w, h) * 1.3)
 
         # moving to center
-        letter_square = 255 * np.zeros(shape=[size_max, size_max], dtype=np.uint8)
+        letter_square = np.zeros(shape=[size_max, size_max], dtype=np.uint8)
         x_0 = (size_max - w) // 2
         y_0 = (size_max - h) // 2
         letter_square[y_0:y_0 + h, x_0:x_0 + w] = cropped
-
+        output = letter_square.copy()
+        output = cv2.resize(output, (280, 280))
         # reshaping for recognition
         letter_square = cv2.resize(letter_square, (28, 28), interpolation=cv2.INTER_AREA)
         letter_square = cv2.flip(letter_square, 1)
@@ -161,7 +164,13 @@ class Application:
         # recognize
         predict = self.model.predict([letter_square])
         result = np.argmax(predict, axis=1)
-        text = chr(self.encodes[str(result[0])])
+        text = chr(self.emnist_labels[result[0]])
+
+        self.predict_count += 1
+        cv2.imwrite(f'data/screenshots/{self.predict_count}.jpg', output)
+        with open(f'data/screenshots/{self.predict_count}.txt', 'w') as file:
+            file.write(text)
+        print(self.predict_count)
         return text
 
     def generate_frames(self, e):
@@ -193,7 +202,7 @@ class Application:
                 contours = self.find_contours(thresh_img)
                 refreshed_objects = []
                 for object in self.objects:
-                    if time.time() - object.time_update < 1:
+                    if time.time() - object.time_update < 2:
                         refreshed_objects.append(object)
                 self.objects = refreshed_objects
                 for contour in contours:
@@ -202,7 +211,7 @@ class Application:
                     for object in self.objects:
                         if object.check(x, y, w, h):
                             find = True
-                            if time.time() - object.time_recognize > 1:
+                            if time.time() - object.time_recognize > 2:
                                 object.symbol = self.recognize(thresh_img, contour)
                                 object.time_recognize = time.time()
                             object.update(x, y, w, h, time.time())

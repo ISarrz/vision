@@ -1,1 +1,1 @@
-{"video_window_size": ["400", "300"], "video_file_name": "C:\\Users\\Germa\\PycharmProjects\\vision\\1.mp4", "video_input_name": "0", "video_input_type": "file", "video_type": "normal", "thresh_value": "114", "thresh_type": "change"}
+{"video_window_size": ["400", "400"], "video_file_name": "C:\\Users\\Germa\\PycharmProjects\\vision\\data\\video\\board_dynamic.mp4", "video_input_name": "0", "video_input_type": "file", "video_type": "normal", "thresh_value": "100", "thresh_type": "auto"}
