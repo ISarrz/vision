@@ -1,0 +1,7 @@
+numpy
+opencv-python
+keras
+tensorflow
+flet
+flet_multi_page
+idx2numpy
