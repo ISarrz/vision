@@ -1,1 +1,1 @@
-{"video_window_size": ["400", "400"], "video_file_name": "C:\\Users\\Germa\\PycharmProjects\\vision\\data\\video\\board_dynamic.mp4", "video_input_name": "0", "video_input_type": "file", "video_type": "normal", "thresh_value": "100", "thresh_type": "auto"}
+{"video_window_size": ["400", "400"], "video_file_name": "C:\\Users\\German\\Downloads\\accuracity\\video\\word_static.mp4", "video_input_name": "1", "video_input_type": "file", "video_type": "normal", "thresh_value": "100", "thresh_type": "auto"}
